@@ -2,8 +2,8 @@
 mod test {
     use sp_core::Blake2Hasher;
     use sp_trie::{
-        trie_types::TrieDBMutBuilderV1, LayoutV1, MemoryDB, TrieDBMut, TrieDBMutBuilder, TrieHash,
-        TrieMut,
+        trie_types::TrieDBMutBuilderV1, LayoutV0, LayoutV1, MemoryDB, TrieDBMut, TrieDBMutBuilder,
+        TrieHash, TrieMut,
     };
 
     #[test]
@@ -34,6 +34,38 @@ mod test {
         }
 
         println!("ROOT {:?}", t.root());
+    }
+
+    #[test]
+    fn root_from_entries_2() {
+        let mut db1: MemoryDB<Blake2Hasher> = MemoryDB::new(&[0u8]);
+        let mut db2: MemoryDB<Blake2Hasher> = MemoryDB::new(&[0u8]);
+
+        {
+            let mut rootv0: TrieHash<LayoutV0<Blake2Hasher>> = Default::default();
+            let mut tv0: TrieDBMut<'_, LayoutV0<Blake2Hasher>> =
+                TrieDBMutBuilder::new(&mut db1, &mut rootv0).build();
+
+            let mut rootv1: TrieHash<LayoutV1<Blake2Hasher>> = Default::default();
+            let mut tv1: TrieDBMut<'_, LayoutV1<Blake2Hasher>> =
+                TrieDBMutBuilder::new(&mut db2, &mut rootv1).build();
+
+            let entries: Vec<(&[u8], &[u8])> = vec![
+                // "alfa" is at a hash-referenced leaf node.
+                (b"alfa", &[0; 40]),
+            ];
+
+            for entry in entries {
+                tv0.insert(entry.0, entry.1).expect("inserted");
+                tv1.insert(entry.0, entry.1).expect("inserted");
+            }
+
+            println!("ROOT V0 {:?}", tv0.root());
+            println!("ROOT V1 {:?}", tv1.root());
+        }
+
+        println!("key V0 {:?}", db1.keys());
+        println!("key V1 {:?}", db2.keys());
     }
 
     mod from_external_file {
