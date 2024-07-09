@@ -2,6 +2,7 @@
 mod test {
     use sp_core::Blake2Hasher;
     use sp_trie::{
+        generate_trie_proof,
         trie_types::{TrieDBBuilder, TrieDBMutBuilderV1},
         LayoutV1, MemoryDB, Recorder, Trie, TrieMut,
     };
@@ -45,6 +46,42 @@ mod test {
                         117, 101
                     ]
                 ]
+            );
+        }
+    }
+
+    #[test]
+    fn merkle_proof() {
+        let mut db = MemoryDB::<Blake2Hasher>::default();
+        let mut root = Default::default();
+        {
+            let mut x = TrieDBMutBuilderV1::new(&mut db, &mut root).build();
+
+            x.insert(b"pol", b"pol").unwrap();
+            x.insert(b"polka", b"polka").unwrap();
+            x.insert(b"polkadot", b"polkadot").unwrap();
+            x.insert(b"go", b"go").unwrap();
+            x.insert(b"golang", b"golang").unwrap();
+            x.insert(b"gossamer", b"gossamer").unwrap();
+        }
+
+        {
+            let keys: Vec<&'static [u8]> = vec![b"go", b"polkadot"];
+            let proof = generate_trie_proof::<LayoutV1<Blake2Hasher>, _, _, _>(&db, root, keys.iter())
+                .expect("Proof generate failed");
+            assert_eq!(
+                proof,
+                vec![
+                    vec![
+                        128, 192, 0, 0, 0
+                    ], 
+                    vec![
+                        131, 7, 111, 192, 0, 48, 71, 12, 97, 110, 103, 24, 103, 111, 108, 97, 110, 103, 64, 75, 3, 115, 97, 109, 101, 114, 32, 103, 111, 115, 115, 97, 109, 101, 114
+                    ], 
+                    vec![
+                        197, 0, 111, 108, 64, 0, 12, 112, 111, 108, 68, 195, 11, 97, 64, 0, 20, 112, 111, 108, 107, 97, 20, 69, 4, 111, 116, 0
+                    ]
+                ],
             );
         }
     }
